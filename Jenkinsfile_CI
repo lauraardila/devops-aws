@@ -17,7 +17,7 @@ pipeline {
             printPostContent: false,
 
             regexpFilterText: '$ref',
-            regexpFilterExpression: '^refs/(heads/(develop|main|master|nonprod|release\\/.*|feature\\/.*))$'
+            regexpFilterExpression: '^refs/(heads/(dev|main|master|nonprod|release\\/.*|feature\\/.*))$'
         )
     }
 
@@ -111,7 +111,7 @@ def createTag() {
 }
 
 def getEnviroment(branchName) {
-    if (branchName == 'origin/develop' || branchName.startsWith('origin/feature/')) {
+    if (branchName == 'origin/dev' || branchName.startsWith('origin/feature/')) {
         return 'dev'
     } else if (branchName.startsWith('origin/release/') || branchName == 'origin/nonprod') {
         return 'nonprod'
@@ -123,7 +123,7 @@ def getEnviroment(branchName) {
 }
 
 def getPrefixVersion(branchName) {
-    if (branchName == 'origin/develop' || branchName.startsWith('origin/feature/')) {
+    if (branchName == 'origin/dev' || branchName.startsWith('origin/feature/')) {
         return '-beta'
     } else if (branchName.startsWith('origin/release/') || branchName == 'origin/nonprod' || branchName == 'origin/uat') {
         return '-rc'
