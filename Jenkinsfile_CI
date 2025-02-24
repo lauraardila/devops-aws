@@ -12,7 +12,7 @@ pipeline {
                 [ key: 'repo_name_full', value: '$.repository.full_name' ],
             ],
             causeString: '$committer_name pushed to $clone_url referencing $commit',
-            token: 'technical-aws',
+            token: 'devops-aws',
             printContributedVariables: false,
             printPostContent: false,
 
