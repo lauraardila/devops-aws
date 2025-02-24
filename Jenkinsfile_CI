@@ -27,7 +27,7 @@ pipeline {
     }
 
     environment {
-        GITHUB_TOKEN = credentials('token-jenkins')
+        GITHUB_TOKEN = credentials('devops-aws')
         STAGE = ''
         TAG = ''
     }
