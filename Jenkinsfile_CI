@@ -103,13 +103,16 @@ def createTag() {
 
     def tag = "v${year}.${month}.${day}${prefix}.$BUILD_ID"
 
+    withCredentials([usernamePassword(credentialsId: 'git-credentials', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+
     // Usar el token para autenticar con GitHub y crear el tag
     sh """
         git config --global user.email "${env.committer_email}"
         git config --global user.name "${env.committer_name}"
         git tag ${tag}
-        git push https://$GITHUB_TOKEN@github.com/${env.repo_name_full}.git ${tag}
+        git push https://${GIT_USER}:${GIT_PASS}@github.com/{env.repo_name_full}.git  ${tag}
     """
+    }
     return tag
 }
 
