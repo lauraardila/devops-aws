@@ -110,7 +110,7 @@ def createTag() {
         git config --global user.email "${env.committer_email}"
         git config --global user.name "${env.committer_name}"
         git tag ${tag}
-        git push https://${GIT_USER}:${GIT_PASS}@github.com/${env.repo_name_full}.git  ${tag}
+        git_pass=${GIT_PASS} git push https://github.com/${env.repo_name_full}.git  ${tag}
     """
     }
     return tag
