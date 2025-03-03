@@ -1,7 +1,24 @@
 pipeline {
     agent any
-       triggers {
-        githubPush() // Activa el pipeline cuando haya un push en el repo
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [ key: 'committer_name', value: '$.head_commit.author.name' ],
+                [ key: 'committer_email', value: '$.head_commit.author.email' ],
+                [ key: 'ref', value: '$.ref' ],
+                [ key: 'commit', value: '$.head_commit.id' ],
+                [ key: 'repo_name', value: '$.repository.name' ],
+                [ key: 'clone_url', value: '$.repository.clone_url' ],
+                [ key: 'repo_name_full', value: '$.repository.full_name' ],
+            ],
+            causeString: '$committer_name pushed to $clone_url referencing $commit',
+            token: 'devops-aws',
+            printContributedVariables: false,
+            printPostContent: false,
+
+            regexpFilterText: '$ref',
+            regexpFilterExpression: '^refs/(heads/(dev|main|master|nonprod|release\\/.*|feature\\/.*))$'
+        )
     }
 
     options { 
