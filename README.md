@@ -6,4 +6,4 @@
 4. Subir documento HTML al bucket s3. Default: "s3-demo-${Stage}-${CostCenter}"
 5. Cargar items a la tabla de dynamo. Default: "${Stage}-inventory-${CostCenter}"
 
-Hola esta es mi primera rama feature/readme-dev v4.0.0
+Hola esta es mi primera rama feature/readme-test v1.0.0
