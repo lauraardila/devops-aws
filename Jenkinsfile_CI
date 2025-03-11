@@ -1,0 +1,170 @@
+pipeline {
+    agent any
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [ key: 'committer_name', value: '$.head_commit.author.name' ],
+                [ key: 'committer_email', value: '$.head_commit.author.email' ],
+                [ key: 'ref', value: '$.ref' ],
+                [ key: 'commit', value: '$.head_commit.id' ],
+                [ key: 'repo_name', value: '$.repository.name' ],
+                [ key: 'clone_url', value: '$.repository.clone_url' ],
+                [ key: 'repo_name_full', value: '$.repository.full_name' ],
+            ],
+            causeString: '$committer_name pushed to $clone_url referencing $commit',
+            token: 'devops-aws',
+            printContributedVariables: false,
+            printPostContent: false,
+
+            regexpFilterText: '$ref',
+            regexpFilterExpression: '^refs/(heads/(dev|main|master|nonprod|release\\/.*|feature\\/.*))$'
+        )
+    }
+
+    options { 
+        timestamps()
+        timeout(time: 8, unit: 'HOURS')
+    }
+
+    environment {
+        GITHUB_TOKEN = credentials('token-jenkins')
+        committer_name = "lauraardila"
+        committer_email = "lauraardilagiraldo@gmail.com"
+        repo_name_full = "lauraardila/devops-aws"
+        STAGE = ''
+        TAG = ''
+    }
+
+    stages {
+        stage('Set Enviroment') {
+            steps {
+                script {
+                    STAGE = getEnviroment(env.GIT_BRANCH)
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    sh '''
+                    printenv
+                    '''
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    sh '''
+                    echo Uploading...
+                    '''
+                }
+            }
+        }
+
+        stage('Publish Artifactory') {
+            steps {
+                script {
+                    sh '''
+                    echo Publish...
+                    '''
+                    TAG = createTag()
+                    currentBuild.displayName = "${STAGE}-${TAG}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                cleanWs()
+            }
+        }
+        success {
+            script {
+                notificationSuccess(TAG)
+                deployArtifactory(TAG)
+            }
+        }    
+    }
+}
+
+def createTag() {
+    def currentDate = new Date()
+    def year = currentDate.format('yy')
+    def month = currentDate.format('MM')
+    def day = currentDate.format('dd')
+    def hour = currentDate.format('HH')
+
+    def prefix = getPrefixVersion(env.GIT_BRANCH)
+
+    def tag = "v${year}.${month}.${day}${prefix}.$BUILD_ID"
+
+    withCredentials([string(credentialsId: 'GIT_JENK', variable: 'GIT_TOKEN')]) {
+
+    // Usar el token para autenticar con GitHub y crear el tag
+    sh """
+        git config --global user.email "${env.committer_email}"
+        git config --global user.name "${env.committer_name}"
+        git tag ${tag}
+        git push https://${GIT_TOKEN}@github.com/${env.repo_name_full}.git ${tag}
+    """
+    }
+    return tag
+}
+
+def getEnviroment(branchName) {
+    if (branchName == 'origin/dev' || branchName.startsWith('origin/feature/')) {
+        return 'dev'
+    } else if (branchName.startsWith('origin/release/') || branchName == 'origin/nonprod') {
+        return 'nonprod'
+    } else if (branchName == 'origin/uat') {
+        return 'uat'
+    } else {
+        return 'prod'
+    }
+}
+
+def getPrefixVersion(branchName) {
+    if (branchName == 'origin/dev' || branchName.startsWith('origin/feature/')) {
+        return '-beta'
+    } else if (branchName.startsWith('origin/release/') || branchName == 'origin/nonprod' || branchName == 'origin/uat') {
+        return '-rc'
+    } else {
+        return ''
+    }
+}
+
+def notificationSuccess(tag) {
+    def subject = ""
+    def bodyText = ""
+    subject = "Released in ${env.repo_name}"
+    bodyText = """
+    Hi there!!
+
+    You pushed in ${env.clone_url} and it is now released.
+
+    Version was built from branch ${env.GIT_BRANCH} in commit ${env.commit}
+
+    See tag created: https://github.com/${env.repo_name_full}/releases/tag/${tag}
+
+    See job here: ${env.BUILD_URL}
+
+    See log here: ${env.BUILD_URL}consoleText
+    """
+    echo "Sending email with subject '${subject}' and content:\n${bodyText}"
+}
+
+def deployArtifactory(artifactoryId) {
+    build job: "${env.JOB_NAME}-deploy",
+        parameters: [   
+            [$class: 'StringParameterValue', name: 'ArtifactoryId', value: "${artifactoryId}" ],
+            [$class: 'StringParameterValue', name: 'Stage', value: STAGE],
+            [$class: 'StringParameterValue', name: 'Email', value: "${env.committer_email}"]
+        ],
+        propagate: false,
+        wait: true
+}
